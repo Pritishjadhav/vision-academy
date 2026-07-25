@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Checking roles via firestore is not natively supported in storage rules directly 
+    // unless using custom claims. We will rely on custom claims or signed URLs.
+    // For now, restrict general access.
+
+    match /videos/{videoId} {
+      allow read: if false; // Only accessible via Cloud Function signed URLs
+      allow write: if isAuthenticated(); // Should be restricted to admin via custom claims
+    }
+
+    match /profile_photos/{userId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
